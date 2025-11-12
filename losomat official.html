@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Życzliwy Los — Losomat</title>
+  <meta name="description" content="Losomat haseł życzliwości: losuj hasło dnia lub dowolne." />
+  <style>
+    :root{
+      --bg1:#0ea5e9; /* sky-500 */
+      --bg2:#9333ea; /* purple-600 */
+      --card:#0b1224ee; /* dark navy with alpha */
+      --text:#e6f1ff;
+      --muted:#b6c2e2;
+      --accent:#22d3ee; /* cyan-400 */
+      --ring:#38bdf8;
+      --btn:#0ea5e9;
+      --btn2:#0284c7;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      min-height:100dvh;
+      background:
+        radial-gradient(1200px 800px at 10% 20%, rgba(255,255,255,0.12), transparent) no-repeat,
+        radial-gradient(900px 600px at 90% 10%, rgba(255,255,255,0.10), transparent) no-repeat,
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      color:var(--text);
+      font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      display:flex; align-items:center; justify-content:center;
+      padding: clamp(16px, 3vw, 32px);
+    }
+    .app{
+      width: min(960px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)), var(--card);
+      border:1px solid rgba(255,255,255,0.18);
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+      padding: clamp(18px, 3vw, 32px);
+      backdrop-filter: blur(8px);
+    }
+    header{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px;
+    }
+    h1{
+      margin:0;
+      font-size: clamp(24px, 3.4vw, 40px);
+      letter-spacing:.3px;
+    }
+    .sub{ color:var(--muted); margin:6px 0 16px; }
+    .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      font-size:14px; color:var(--text);
+    }
+    main{ display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 880px){
+      main{ grid-template-columns: 1fr 300px; gap:20px; }
+    }
+    .card{
+      border-radius: 22px;
+      padding: 18px;
+      background: rgba(5,10,24,0.45);
+      border:1px solid rgba(255,255,255,0.18);
+    }
+    .result{
+      font-size: clamp(18px, 2.6vw, 28px);
+      font-weight: 800;
+      min-height: 2.8em;
+      display:flex; align-items:center;
+      text-wrap: balance;
+    }
+    .meta{ color:var(--muted); font-size:14px; margin-top:6px; min-height: 1.2em; }
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    button{
+      appearance:none; border:none; cursor:pointer;
+      color:white; font-weight:700;
+      padding: 12px 16px; border-radius: 14px;
+      background: linear-gradient(180deg, var(--btn), var(--btn2));
+      box-shadow: 0 10px 24px rgba(1, 103, 190, 0.35);
+      transition: transform .06s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    button:hover{ transform: translateY(-1px); filter:brightness(1.05); }
+    button:active{ transform: translateY(0); filter:brightness(0.98); }
+    button.secondary{
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+    }
+    .badge{
+      font-size:12px; color:var(--text);
+      background: rgba(255,255,255,0.1);
+      border:1px solid rgba(255,255,255,0.18);
+      padding: 4px 8px; border-radius: 999px;
+    }
+    footer{ margin-top:14px; color:var(--muted); font-size:13px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+    a{ color:var(--accent); text-decoration:none; }
+    .hidden{ display:none !important; }
+    /* simple in-card confetti */
+    .confetti{ position: fixed; inset: 0; pointer-events:none; overflow:hidden; }
+    .confetti i{
+      position:absolute; width:8px; height:10px; background: white; opacity:.9;
+      transform: rotate(20deg);
+      border-radius:2px;
+      animation: fall 1.2s linear forwards;
+    }
+    @keyframes fall{
+      to { transform: translateY(120vh) rotate(320deg); opacity:0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="main">
+    <header>
+      <div>
+        <h1>Życzliwy Los</h1>
+        <div class="sub">Jedno kliknięcie = hasło na dziś.</div>
+        <div class="row">
+          <span class="pill">🎯 Tryb:
+            <label style="margin-left:8px;"><input type="radio" name="mode" value="random" checked> Losuj dowolne</label>
+            <label style="margin-left:10px;"><input type="radio" name="mode" value="daily"> Hasło dnia</label>
+          </span>
+          <span class="pill">🌈 Akcent kolorystyczny:
+            <select id="theme">
+              <option value="sky">Błękit → Fiolet</option>
+              <option value="sunset">Pomarańcz → Róż</option>
+              <option value="forest">Zieleń → Turkus</option>
+              <option value="rose">Róż → Purpura</option>
+              <option value="mono">Granat</option>
+            </select>
+          </span>
+          <span class="badge"></span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div id="result" class="result">Kliknij „Losuj”, by wylosować hasło.</div>
+        <div id="meta" class="meta"></div>
+        <div class="controls">
+          <button id="draw">🎲 Losuj</button>
+          <button id="copy" class="secondary">📋 Kopiuj</button>
+          <button id="share" class="secondary">🔗 Udostępnij</button>
+        </div>
+      </section>
+
+  <div class="confetti" aria-hidden="true" id="confetti"></div>
+
+  <script>
+    // ====== Motywy kolorów ======
+    const THEMES = {
+      sky:  {bg1:'#0ea5e9', bg2:'#9333ea', btn:'#0ea5e9', btn2:'#0284c7'},
+      sunset:{bg1:'#fb923c', bg2:'#ec4899', btn:'#fb923c', btn2:'#ea580c'},
+      forest:{bg1:'#10b981', bg2:'#14b8a6', btn:'#10b981', btn2:'#0d9488'},
+      rose:  {bg1:'#f43f5e', bg2:'#a855f7', btn:'#f43f5e', btn2:'#be185d'},
+      mono:  {bg1:'#111827', bg2:'#0b1020', btn:'#3b82f6', btn2:'#1d4ed8'},
+    };
+    function applyTheme(key){
+      const t = THEMES[key] || THEMES.sky;
+      document.documentElement.style.setProperty('--bg1', t.bg1);
+      document.documentElement.style.setProperty('--bg2', t.bg2);
+      document.documentElement.style.setProperty('--btn', t.btn);
+      document.documentElement.style.setProperty('--btn2', t.btn2);
+      localStorage.setItem('losomat_theme', key);
+    }
+
+    // ====== Frazy (duża pula) ======
+    const BASE = [
+      "Uśmiechnij się – dziś wszystko pójdzie po Twojej myśli! 😊",
+      "Zrób dziś coś miłego dla kogoś — dobro wraca.",
+      "Kawa smakuje lepiej, gdy pijesz ją bez pośpiechu. ☕",
+      "Daj sobie dziś prawo do odpoczynku – zasługujesz.",
+      "Jesteś ważną częścią tej drużyny! 💪",
+      "Każdy dzień jest nową szansą – wykorzystaj ją po swojemu.",
+      "Niech Twoje poczucie humoru prowadzi Cię przez dzisiejszy dzień. 😄",
+      "Wstałeś/aś? To już sukces. Reszta to bonusy.",
+      "Zrób dziś coś tylko dla siebie.",
+      "Dziękuj za małe rzeczy – to one składają się na szczęście.",
+      "Twój wysiłek ma znaczenie – ktoś go zauważa.",
+      "Uśmiech to najkrótsza droga do drugiego człowieka.",
+      "Zadbaj o siebie tak, jak o bliską osobę.",
+      "Dziś idealny dzień na odwagę w małych sprawach.",
+      "To, co robisz, inspiruje innych bardziej, niż myślisz.",
+      "Zatrzymaj się i pomyśl, z czego jesteś dziś dumny/a.",
+      "Zrób przerwę na wodę – mózg Ci podziękuje. 💧",
+      "Słuchaj uważnie – ktoś dziś powie coś ważnego.",
+      "Masz wpływ na swój dzień – wykorzystaj to.",
+      "Zmień jedno „muszę” na „chcę”.",
+      "Dawaj sobie zgodę na błędy – są po coś.",
+      "Małe rzeczy, wielka różnica.",
+      "Dziś wybierz życzliwość – wobec innych i wobec siebie.",
+      "Nie porównuj – idziesz swoją ścieżką.",
+      "Zauważ choć jedną piękną rzecz wokół siebie.",
+      "Zapisz dziś trzy dobre rzeczy, które Ci się przydarzą.",
+      "Jeśli możesz – ułatw komuś dzień.",
+      "Dziś jest dobry dzień na pytanie „w czym pomóc?”.",
+      "Twoja praca ma sens – dziękujemy.",
+      "Znajdź powód do śmiechu. Albo stwórz go. 😄",
+      "Zadbaj o przyszłego siebie: zrób coś małego już teraz.",
+      "Oddychaj głęboko. Jeszcze raz. I jeszcze raz.",
+      "Zrób jedno zadanie na 100% – reszta poczeka.",
+      "Powiedz „dziękuję” komuś, kto na to czeka.",
+      "Doceniaj postęp, nie perfekcję.",
+      "Twój spokój jest zaraźliwy.",
+      "Krótki spacer = nowa energia.",
+      "Podziel się dziś wiedzą – ktoś na to liczy.",
+      "Zadawaj pytania – ciekawość to supermoc.",
+      "Masz w sobie więcej niż przypuszczasz.",
+      "Zamień narzekanie na działanie – choćby mini.",
+      "Każde „dziś” to inwestycja w „jutro”.",
+      "Zrób coś kreatywnego w 10 minut.",
+      "Zadzwoń do kogoś, za kim tęsknisz.",
+      "Uśmiechaj się też do siebie – w lustrze.",
+      "Powoli to też wciąż do przodu.",
+      "Bądź dla siebie łagodny/a – robisz co możesz.",
+      "Zrób coś, co odkładasz – mały ruch!",
+      "Niech Twoja obecność będzie czyimś spokojem.",
+      "Doceniaj wysiłek – swój i innych.",
+      "Masz prawo powiedzieć „nie”.",
+      "Zapisz jedną myśl, która Cię dziś poruszyła.",
+      "Przypomnij sobie swój sukces z ostatniego miesiąca.",
+      "Dziś przyjmij komplement bez „ale”.",
+      "Znajdź jedną rzecz, którą możesz uprościć.",
+      "Wybierz życzliwość zamiast racji.",
+      "Rób przerwy – mózg lubi odpoczywać.",
+      "Pochwal dziś kogoś publicznie.",
+      "Zadbaj o sen dzisiejszej nocy.",
+      "Otwórz okno. Wpuść świeże powietrze i myśli.",
+      "Drobny gest może zmienić komuś dzień.",
+      "Zrób coś bardzo małego, ale ważnego.",
+      "Twoje tempo jest wystarczające.",
+      "Zwróć uwagę na to, co dobrze działa – i powtórz.",
+      "Wyłącz na 10 minut powiadomienia.",
+      "Podziękuj sobie za wytrwałość.",
+      "Doceniaj drogę, nie tylko cel.",
+      "Zacznij od najłatwiejszego kroku.",
+      "Przypomnij sobie, dlaczego to robisz.",
+      "Jesteś tu – i to już dużo.",
+      "Dziś miej łagodność dla swoich granic.",
+      "Nie wszystko naraz — krok po kroku.",
+      "Twoje słowa mają moc — używaj ich dobrze.",
+      "Dziś spróbuj czegoś nowego do śniadania.",
+      "Zrób porządek na biurku — lekkość w głowie.",
+      "Usłysz siebie w ciszy — 2 minuty wystarczą.",
+      "Zachwyć się czymś małym — liściem, chmurą, dźwiękiem.",
+      "Napisz wiadomość z podziękowaniem.",
+      "Daj sobie prawo nie wiedzieć — i zapytać.",
+      "Zadbaj o ruch — 5 minut rozciągania to też ruch.",
+      "Zaufaj procesowi, nawet jeśli nie widzisz końca.",
+      "Zgódź się, że dziś może być po prostu „OK”.",
+      "Podaruj komuś swój uśmiech w korytarzu.",
+      "Złap słońce na twarz — jeśli się pokaże.",
+      "Zaparz ulubioną herbatę i wypij bez pośpiechu.",
+      "Zauważ dziś czyjąś pracę i powiedz o tym.",
+      "Nie wszystko musisz komentować — spokój też mówi.",
+      "Zrób playlistę, która niesie Cię dziś lekko.",
+      "Przypomnij sobie, co lubisz w swojej pracy.",
+      "Wypisz 3 rzeczy, które możesz odpuścić.",
+      "Uśmiechnij się do osoby z recepcji.",
+      "Zaproś kogoś na krótki spacer po budynku.",
+      "Weź głębszy oddech przed wysłaniem wiadomości.",
+      "Wyprostuj plecy — poczuj różnicę.",
+      "Zapytaj: „Jak mogę pomóc?” — i posłuchaj odpowiedzi.",
+      "Przeczytaj coś inspirującego przez 2 minuty.",
+      "Zadbaj o wodę przy biurku. 💧",
+      "Zapisz pomysł, który właśnie przyszedł — niech nie ucieknie.",
+      "Zadbaj o jedną małą granicę w kalendarzu.",
+      "Podziękuj komuś za szybki feedback.",
+      "Zrób zdjęcie czegoś ładnego i wyślij bliskiej osobie.",
+      "Pomyśl, co dziś możesz uprościć o 10%.",
+      "Pochwal siebie za wczoraj — serio.",
+      "Dziś mniej perfekcji, więcej życzliwości.",
+      "Zamknij na chwilę oczy — reset.",
+      "Zrób „detoks narzekania” na 1 godzinę.",
+      "Pozwól sobie nie ogarniać wszystkiego.",
+      "Zrób listę „nie muszę” — ulga gwarantowana.",
+      "Dodaj do kalendarza 15 minut „dla siebie”.",
+      "Powiedz komuś „świetna robota!”.",
+      "Oddychaj nosem przez 5 oddechów — uspokaja.",
+      "Przekaż dobrą wiadomość dalej.",
+      "Usiądź wygodniej — Twoje ciało też pracuje.",
+      "Zmień tapetę w telefonie na coś kojącego.",
+      "Zauważ dziś coś, co poszło dobrze.",
+      "Nie śpiesz się z odpowiedzią — cisza jest ok.",
+      "Przyjmij pomoc, jeśli ktoś ją proponuje.",
+      "Dziś bądź dla siebie takim przyjacielem, jakim jesteś dla innych."
+    ];
+
+    // ====== Stan i elementy ======
+    const resultEl = document.getElementById('result');
+    const metaEl = document.getElementById('meta');
+    const confettiEl = document.getElementById('confetti');
+    const themeSel = document.getElementById('theme');
+    let last = null;
+
+    // ====== Util ======
+    function hashString(s){
+      let h = 2166136261;
+      for (let i=0;i<s.length;i++){
+        h ^= s.charCodeAt(i);
+        h += (h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24);
+      }
+      return (h >>> 0);
+    }
+    function confetti(){
+      // simple lightweight confetti burst
+      for(let i=0;i<20;i++){
+        const piece = document.createElement('i');
+        piece.style.left = (Math.random()*100) + 'vw';
+        piece.style.top = '-10vh';
+        piece.style.background = `hsl(${Math.floor(Math.random()*360)},90%,70%)`;
+        piece.style.transform = `rotate(${Math.floor(Math.random()*60)}deg)`;
+        confettiEl.appendChild(piece);
+        setTimeout(()=> piece.remove(), 1300);
+      }
+    }
+    function setResult(text, info){
+      resultEl.textContent = text;
+      metaEl.textContent = info || "";
+      last = text;
+      confetti();
+    }
+    function drawRandom(){
+      let idx = Math.floor(Math.random()*BASE.length);
+      if (BASE.length > 1 && BASE[idx] === last){
+        idx = (idx + 1) % BASE.length;
+      }
+      setResult(BASE[idx]);
+    }
+    function drawDaily(){
+      const stamp = new Date().toISOString().slice(0,10);
+      const idx = hashString(stamp) % BASE.length;
+      setResult(BASE[idx], `Hasło dnia dla ${stamp}`);
+    }
+    function copyText(text){
+      if (!text) return;
+      navigator.clipboard?.writeText(text).then(()=>{
+        metaEl.textContent = "Skopiowano do schowka ✅";
+        setTimeout(()=> { if (metaEl.textContent.includes("Skopiowano")) metaEl.textContent=""; }, 1500);
+      }).catch(()=>{});
+    }
+    function shareCurrent(){
+      const msg = last || "";
+      if (navigator.share){
+        navigator.share({ title:"Życzliwy Los", text: msg });
+      } else {
+        copyText(msg);
+      }
+    }
+
+    // ====== Zdarzenia ======
+    document.getElementById('draw').addEventListener('click', ()=>{
+      const mode = document.querySelector('input[name="mode"]:checked')?.value || 'random';
+      if (mode === 'daily') drawDaily(); else drawRandom();
+    });
+    document.getElementById('copy').addEventListener('click', ()=> copyText(last || resultEl.textContent));
+    document.getElementById('share').addEventListener('click', shareCurrent);
+    themeSel.addEventListener('change', (e)=> applyTheme(e.target.value));
+
+    // ====== Init ======
+    applyTheme(localStorage.getItem('losomat_theme') || 'sky');
+  </script>
+</body>
+</html>
